@@ -51,8 +51,11 @@ Known_Genes_Original_14720/
     known_genes.bed, known_genes.fa(.fai)  per-gene coordinates and sequences
     blastx_db/                             SwissProt BLAST db
     blastx_chunks/                         per-gene BLASTX output (one .tsv per chunk)
-    old_oct6/                              archived outputs of the shared-representative run
-    (other Oct 6 / Oct 7 files)            OLD run and no-hit rescue work; do NOT use as input
+    old_oct6/                              archived final tables/GTF of the shared-representative run
+    old_shared_rep_run/                    old run's inputs and intermediates (representative map,
+                                           chunks, BLASTX parts, ID lists); moved 2026-10-13; do NOT use as input
+    (Oct 7 no-hit rescue files)            nohit_*, candidate_*, diamond_db/, diamond_test/,
+                                           mosquito_pilot/, mosquito_proteins/ (06.x work, rerun on new no-hit list)
   scripts/
     old_scripts_superseded/                replaced scripts and .bak copies
 ```
