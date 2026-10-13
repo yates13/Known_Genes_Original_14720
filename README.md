@@ -3,7 +3,7 @@
 Culex tarsalis CtarK1 updated GTF. Re-annotates the 14,720 known genes by running BLASTX on each gene's **own** genomic sequence against SwissProt, choosing the best evidence per gene, and rebuilding the notes in the final GTF.
 
 Last updated: 2026-10-13. Status: pipeline complete; see "Remaining TODOs".
-Repo: github.com/yates13/Known_Genes_Original_14720 (code only; keep `data/`, `results/`, `logs/` out of git, files over 100 MB are rejected).
+Repo: github.com/yates13/Known_Genes_Original_14720.
 
 ---
 
@@ -170,7 +170,7 @@ Transposon filter: `transpos|retrotranspos|reverse transcriptase|RNA-directed DN
 
 ## Not part of the fix
 
-`06.1_diamond_validation.py`, `06.2_candidate_transcripts.py`, `06.4_mosquito_blastx_pilot.sh`: attempts to annotate no-hit genes with DIAMOND and mosquito proteins. Their inputs come from the old no-hit list (Oct 7), so rerun on the 3,921 current unlabeled genes if wanted. 05.1/05.2 do not read any 06.x output.
+`06.1_diamond_validation.py`, `06.2_candidate_transcripts.py`, `06.4_mosquito_blastx_pilot.sh`: attempts to annotate no-hit genes with DIAMOND and mosquito proteins. Their inputs come from the old no-hit list (Oct 7). 05.1/05.2 do not read any 06.x output.
 
 ## Remaining TODOs
 
