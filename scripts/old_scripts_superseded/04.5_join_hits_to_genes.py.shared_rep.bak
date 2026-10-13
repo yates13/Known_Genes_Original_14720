@@ -1,0 +1,117 @@
+
+#!/usr/bin/env python3
+
+"""04.6 - join per-transcript BLASTX best hits back to the known genes.
+
+Run from scripts/. Reads gene_to_representative_transcript.tsv (gene<TAB>transcript, no header)
+
+and known_gene_blastx_best_hits_parsed.tsv (qseqid, evalue, bitscore, tier, name, stitle)."""
+
+import sys
+
+from collections import Counter, defaultdict
+
+
+
+MAP = "../results/gene_to_representative_transcript.tsv"
+
+HITS = "../results/known_gene_blastx_best_hits_parsed.tsv"
+
+OUT = "../results/known_gene_annotation_by_gene.tsv"
+
+
+
+hits = {}
+
+with open(HITS) as fh:
+
+    for line in fh:
+
+        f = line.rstrip("\n").split("\t")
+
+        if len(f) < 6:
+
+            continue
+
+        try:
+
+            float(f[1])          # skips a header row if present
+
+        except ValueError:
+
+            continue
+
+        hits[f[0]] = f[1:6]
+
+
+
+gene_tx = []
+
+tx_genes = defaultdict(int)
+
+with open(MAP) as fh:
+
+    for line in fh:
+
+        f = line.rstrip("\n").split("\t")
+
+        if len(f) < 2:
+
+            continue
+
+        gene_tx.append((f[0], f[1]))
+
+        tx_genes[f[1]] += 1
+
+
+
+tiers = Counter()
+
+n_hit = n_hit_shared = n_shared = 0
+
+with open(OUT, "w") as out:
+
+    out.write("gene_id\ttranscript_id\tgenes_sharing_transcript\thas_hit\tevalue\tbitscore\ttier\tname\tstitle\n")
+
+    for gene, tx in gene_tx:
+
+        shared = tx_genes[tx]
+
+        if shared > 1:
+
+            n_shared += 1
+
+        h = hits.get(tx)
+
+        if h:
+
+            n_hit += 1
+
+            tiers[h[2]] += 1
+
+            if shared > 1:
+
+                n_hit_shared += 1
+
+            out.write(f"{gene}\t{tx}\t{shared}\tyes\t" + "\t".join(h) + "\n")
+
+        else:
+
+            out.write(f"{gene}\t{tx}\t{shared}\tno\t\t\t\t\t\n")
+
+
+
+print(f"genes with a representative transcript: {len(gene_tx)}", file=sys.stderr)
+
+print(f"distinct representative transcripts:    {len(tx_genes)}", file=sys.stderr)
+
+print(f"genes whose transcript is shared:       {n_shared}", file=sys.stderr)
+
+print(f"genes with a BLASTX hit:                {n_hit} ({100*n_hit/len(gene_tx):.1f}%)", file=sys.stderr)
+
+print(f"  of which share a transcript:          {n_hit_shared}", file=sys.stderr)
+
+print(f"gene-level tier breakdown:              {dict(tiers)}", file=sys.stderr)
+
+print(f"wrote {OUT}", file=sys.stderr)
+

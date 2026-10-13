@@ -1,0 +1,44 @@
+#!/bin/bash
+#SBATCH --partition=acpu
+#SBATCH --job-name=04.3_merge_known_gene_blastx
+#SBATCH --output=../logs/04.3_merge_known_gene_blastx_%j.out
+#SBATCH --error=../logs/04.3_merge_known_gene_blastx_%j.err
+#SBATCH --time=00:15:00
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=4G
+#SBATCH --qos=cpu-normal
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=c832500103@colostate.edu
+
+# 04.4 - merge the 20 BLASTX parts from 04.3 into one file for 04.5
+# Submit from scripts/ after all 04.3 array tasks have COMPLETED.
+set -euo pipefail
+
+RES=../results
+PARTS_DIR=$RES/blastx_chunks
+OUT=$RES/known_gene_blastx_all_hits.tsv
+REPS=$RES/known_genes.fa
+
+# 1. all 20 parts must exist
+n_parts=$(ls $PARTS_DIR/known_genes.*.blastx.tsv 2>/dev/null | wc -l)
+if [ "$n_parts" -ne 20 ]; then
+    echo "ERROR: found $n_parts parts, expected 20" >&2
+    exit 1
+fi
+
+# 2. flag empty parts (suspicious, not fatal)
+for f in $PARTS_DIR/known_genes.*.blastx.tsv; do
+    [ -s "$f" ] || echo "WARNING: $f is empty" >&2
+done
+
+# 3. merge in numeric order
+ls $PARTS_DIR/known_genes.*.blastx.tsv | sort -V | xargs cat > "$OUT"
+
+# 4. summary
+n_lines=$(wc -l < "$OUT")
+n_queries=$(cut -f1 "$OUT" | sort -u | wc -l)
+n_reps=$(grep -c ">" "$REPS")
+echo "Merged lines:            $n_lines"
+echo "Queries with a hit:      $n_queries"
+echo "Representatives queried: $n_reps"
+echo "Queries with no hit:     $((n_reps - n_queries))"
