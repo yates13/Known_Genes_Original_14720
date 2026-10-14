@@ -10,7 +10,6 @@ Repo: github.com/yates13/Known_Genes_Original_14720.
 ## Why this pipeline exists
 
 The first annotation run (archived in `results/old_oct6/`) picked one **representative transcript per gene** (`gene_to_representative_transcript.tsv`), ran BLASTX on the transcript, and copied the best SwissProt hit onto the gene.
-
 Problem: many genes shared the same representative, and a long transcript can span several genes. One hit was then copied onto all of them.
 
 Worked example:
