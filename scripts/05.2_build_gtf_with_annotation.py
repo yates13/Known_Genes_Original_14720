@@ -24,6 +24,7 @@ OUT_LOOKUP = "../results/annotation_lookup.tsv"
 EVIDENCE = [  # priority order - add new evidence files here
 
     "../results/annotation_evidence.SwissProt_BLASTX.best.tsv",
+    "../results/annotation_evidence.Mosquito_DIAMOND.filtered.tsv",
 
 ]
 
