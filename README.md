@@ -164,16 +164,22 @@ Transposon filter: `transpos|retrotranspos|reverse transcriptase|RNA-directed DN
 
 ---
 
-## Results (2026-10)
+## Results (2026-10-15)
 
-- 14,720 genes queried; 10,439 (70.9%) had a hit in the new run, 4,281 none.
-- Compared with the Oct 6 run: 4,104 same name, 1,872 changed, 4,463 gained, 677 lost, 3,604 no hit in either.
-- Of the 1,066 changed-name genes whose old transcript was unshared, the old hit had the higher bitscore in 653 and the new hit was equal or higher in 413. Changes among genes with a shared old transcript: 806 (these are the corrections); lost hits: 317 shared, 360 unshared.
-- Final GTF: **10,799 genes annotated, 3,921 `annotation_source "none"`**.
-- Rule counts: new_only 5,799; same_name 3,574; old_higher_bitscore 611; new_ge_bitscore 338; old_fallback 360; new_chosen_old_is_TE 61; old_chosen_new_is_TE 56.
-- Label source in the GTF: 9,772 from the new run, 1,027 from the old transcript run.
-- TE-like names in the final set: 193 (217 in the new run alone, 208 in the old run).
-- Output GTF has 14,720 lines, same as the input; only gene-line attributes changed.
+14,720 genes in the input GTF.
+
+- SwissProt stage: 10,799 genes annotated, 3,921 with no SwissProt annotation.
+- Mosquito rescue stage searched previously unlabeled genes against four protein databases: Cquinq, Aedes, Agam, and Dmel.
+- DIAMOND rescue evidence: 3,114 genes had at least one mosquito-protein hit; 2,227 received a usable annotation and 887 were classified as homology-only (no usable name).
+- Best-hit source among rescued genes: 1,036 Cquinq, 662 Agam, 315 Aedes, and 214 Dmel.
+- Updated GTF: 13,026 genes annotated, 1,694 annotation_source "none".
+- Annotation coverage improved from 10,799/14,720 (73.4%) after SwissProt annotation alone to 13,026/14,720 (88.5%) after mosquito-homology rescue.
+- Mosquito rescue contributed 2,227 additional annotations, reducing the unannotated set by 2,227 genes relative to the SwissProt-only GTF.
+- Incorporation of Agam and Dmel recovered 1,005 additional genes beyond the earlier Cquinq+Aedes-only rescue workflow.
+- Label sources in the final GTF: 10,799 SwissProt annotations and 2,227 Mosquito_RefSeq annotations.
+- Output GTF has 14,720 gene lines, matching the input GTF; only gene-line attributes were modified.
+- Final annotation release: results/basefeatures_realgenes.annotated.mosquito_rescue.gtf.
+
 
 ## Key files
 
