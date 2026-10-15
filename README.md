@@ -1,4 +1,4 @@
-# Known_Genes_Original_14720: per-gene SwissProt re-annotation
+# Known_Genes_Original_14720: per-gene SwissProt re-annotation + Mosquito Homology Re-annotation
 
 Culex tarsalis CtarK1 updated GTF. Re-annotates the 14,720 known genes by running BLASTX on each gene's **own** genomic sequence against SwissProt, choosing the best evidence per gene, and rebuilding the notes in the final GTF.
 
@@ -21,6 +21,22 @@ Fix: BLASTX each gene's own sequence (`known_genes.fa`). After the fix gene5024-
 
 Related: GMAP aligned `NODE_176198_..._g78408_i0` across about 46 kb and six genes (gene5023-5028), a spurious long-intron alignment. It is not used by this pipeline.
 
+Genes lacking SwissProt annotation were searched against four insect
+protein databases using DIAMOND:
+
+- Culex quinquefasciatus (Cquinq)
+- Aedes spp. (Aedes)
+- Anopheles gambiae (Agam)
+- Drosophila melanogaster (Dmel)
+
+For each gene, the highest-bitscore non-vague annotation was retained.
+Genes annotated only as hypothetical proteins or uncharacterized proteins
+were not assigned labels.
+
+Accepted mosquito annotations were merged into the SwissProt-annotated
+GTF to create:
+
+results/basefeatures_realgenes.annotated.mosquito_rescue.gtf
 ---
 
 ## Environment
@@ -55,6 +71,11 @@ Known_Genes_Original_14720/
                                            chunks, BLASTX parts, ID lists); moved 2026-10-13; do NOT use as input
     (Oct 7 no-hit rescue files)            nohit_*, candidate_*, diamond_db/, diamond_test/,
                                            mosquito_pilot/, mosquito_proteins/ (06.x work, rerun on new no-hit list)
+    mosquito_diamond/
+      Cquinq.tsv
+      Aedes.tsv
+      Agam.tsv
+      Dmel.tsv
   scripts/
     old_scripts_superseded/                replaced scripts and .bak copies
 ```
@@ -74,7 +95,12 @@ Known_Genes_Original_14720/
 | 05.1 | `05.1_build_annotation_evidence.py` | Evidence table, one row per gene (accession, identity, alignment length) |
 | 05.1b | `05.1b_choose_best_evidence.py` | One evidence row per gene from the new run and the old transcript run (rules below) |
 | 05.2 | `05.2_build_gtf_with_annotation.py` | Write the annotated GTF; reads `annotation_evidence.SwissProt_BLASTX.best.tsv` |
-
+| 06.1 | 06.1_diamond_validation.py | Validates candidate no-hit genes and associated transcript evidence before mosquito-homology rescue. | 
+| 06.2 | 06.2_candidate_transcripts.py | Identifies candidate transcripts for genes lacking SwissProt annotation; generates transcript lists and rescue inputs. | 
+| 06.4 | 06.4_mosquito_blastx_pilot.sh | Pilot DIAMOND/BLASTX search on a subset of unlabeled genes to test mosquito-protein annotation workflows and filtering rules. | 
+| 06.5 | 06.5_run_mosquito_diamond.sh | Runs DIAMOND searches of unlabeled genes against mosquito/insect protein databases (Cquinq, Aedes, Agam, Dmel). Produces per-database hit tables in results/mosquito_diamond/. | 
+| 06.6 | 06.6_build_mosquito_evidence.py | Combines mosquito DIAMOND hits, removes vague labels (hypothetical/uncharacterized proteins), selects the best annotation per gene by bitscore, and writes annotation_evidence.Mosquito_DIAMOND.tsv. | 
+| 06.7 | 06.7_build_mosquito_rescue_gtf.py | Adds mosquito-derived annotations to genes that remain annotation_source "none" in the SwissProt GTF. Outputs basefeatures_realgenes.annotated.mosquito_rescue.gtf. |
 Superseded (old shared-representative approach, in `scripts/old_scripts_superseded/`): `04.1_build_known_gene_representatives.py`, `04.2_prep_known_gene_blastx.sh`, `04.3_known_gene_blastx_array.sh`, plus `.bak` copies of the patched `04.3` merge, old `04.5` join and `05.2`.
 
 ### BLASTX settings (04.2)
