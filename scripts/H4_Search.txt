@@ -1,0 +1,20 @@
+# Find the histone H4 genes
+D=../results/basefeatures_realgenes.annotated.mosquito_rescue.v2_four_species.col10_pvalue_col11_accession.gtf
+awk -F'\t' '$9 ~ /annotation_name "[^"]*[Hh]istone H4/ {
+  match($9,/gene_id "[^"]+"/); id=substr($9,RSTART+9,RLENGTH-10)
+  match($9,/annotation_name "[^"]+"/); nm=substr($9,RSTART+17,RLENGTH-18)
+  print id"\t"$1":"$4"-"$5"\t"$10"\t"$11"\t"nm}' $D
+
+# Build the gene list
+ls ../results/spotcheck_genes.tsv spotcheck_genes.tsv 2>/dev/null
+head -3 spotcheck_genes.tsv ../results/spotcheck_genes.tsv 2>/dev/null
+cut -f1 ../results/spotcheck_genes.tsv | tail -n +2 > ../results/spotcheck_ids.txt
+printf '%s\n' gene222 gene226 gene14638 gene5911 gene14341 gene1575 >> ../results/spotcheck_ids.txt
+awk '!seen[$0]++' ../results/spotcheck_ids.txt > ../results/spotcheck_ids.tmp && mv ../results/spotcheck_ids.tmp ../results/spotcheck_ids.txt
+wc -l ../results/spotcheck_ids.txt
+head -3 ../results/spotcheck_ids.txt
+grep -c -w gene5028 ../results/spotcheck_ids.txt
+
+# Build the env
+source /scratch/alpine/c832500103@colostate.edu/miniconda3/etc/profile.d/conda.sh
+conda create -y -p /scratch/alpine/c832500103@colostate.edu/conda_envs/miniprot_env -c conda-forge -c bioconda miniprot

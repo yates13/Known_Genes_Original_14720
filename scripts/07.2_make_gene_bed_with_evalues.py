@@ -11,8 +11,8 @@ import pandas as pd
 import numpy as np
 
 COLS = ["qseqid","sseqid","pident","length","evalue","bitscore","stitle"]
-GTF  = "../results/basefeatures_realgenes.annotated.mosquito_rescue.gtf"
-OUT  = "../results/Cxt_Main_NEW_ANNOT_gene.with_evalues.bed"
+GTF  = "../results/basefeatures_realgenes.annotated.mosquito_rescue.v3_confidence.gtf"
+OUT  = "../results/Cxt_Main_NEW_ANNOT_gene.v3_confidence.with_evalues.bed"
 DBS  = ["Cquinq","Aedes","Agam","Dmel"]
 STRIP = r"^(?:tr|sp)\|([^|]+)\|.*$"   # tr|ACC|ACC_SPECIES -> ACC
 

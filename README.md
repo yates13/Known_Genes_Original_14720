@@ -2,7 +2,7 @@
 
 Culex tarsalis CtarK1 updated GTF. Re-annotates the 14,720 known genes by running BLASTX on each gene's **own** genomic sequence against SwissProt, choosing the best evidence per gene, and rebuilding the notes in the final GTF.
 
-Last updated: 2026-10-20. Status: pipeline complete; 07.x added (E-value/P-value BED, P-value GTFs, spot-check in progress). See "Remaining TODOs".
+Last updated: 2026-10-21. Status: complete. Final annotation release is the v3_confidence GTF (06.8); 07.x outputs rebuilt on v3; spot-check done. See "Remaining TODOs".
 Repo: github.com/yates13/Known_Genes_Original_14720.
 
 ---
@@ -100,14 +100,19 @@ Known_Genes_Original_14720/
 | 06.1 | `06.1_diamond_validation.py` | Validates candidate no-hit genes and associated transcript evidence before mosquito-homology rescue. |
 | 06.2 | `06.2_candidate_transcripts.py` | Identifies candidate transcripts for genes lacking SwissProt annotation; generates transcript lists and rescue inputs. |
 | 06.4 | `06.4_mosquito_blastx_pilot.sh` | Pilot DIAMOND/BLASTX search on a subset of unlabeled genes to test mosquito-protein annotation workflows and filtering rules. (No 06.3 exists; see TODOs.) |
-| 06.5 | `06.5_mosquito_diamond_unlabeled_genes.sh` | Runs DIAMOND searches of unlabeled genes against mosquito/insect protein databases (Cquinq, Aedes, Agam, Dmel). Produces per-database hit tables in results/mosquito_diamond/. |
-| 06.6 | `06.6_build_mosquito_evidence.py` | Combines mosquito DIAMOND hits, removes vague labels (hypothetical/uncharacterized proteins), selects the best annotation per gene by bitscore, and writes annotation_evidence.Mosquito_DIAMOND.tsv. |
-| 06.7 | `06.7_build_mosquito_rescue_gtf.py` | Adds mosquito-derived annotations to genes that remain annotation_source "none" in the SwissProt GTF. Outputs basefeatures_realgenes.annotated.mosquito_rescue.gtf. |
+| 06.5 | `06.5_mosquito_diamond_unlabeled_genes.sh` | DIAMOND searches of unlabeled genes against Cquinq, Aedes, Agam, Dmel. Per-database hit tables in results/mosquito_diamond/. |
+| 06.5a | `06.5a_...` | TODO: one-line description (I don't have this script's contents). |
+| 06.5b | `06.5b_...` | Reruns the four DIAMOND searches with query-coverage columns; tables in results/mosquito_diamond_cov/. Best hits identical to 06.5. |
+| 06.6 | `06.6_build_mosquito_evidence.py` | Removes vague labels, picks the best name per gene by bitscore, writes annotation_evidence.Mosquito_DIAMOND.tsv. A single pass reproduces all 2,227 labels (including the 1,222 formerly produced by a separate stage-2 filter). |
+| 06.7 | `06.7_build_mosquito_rescue_gtf.py` | Adds mosquito labels to genes with annotation_source "none". Output: ...mosquito_rescue.gtf (0 accession differences from the earlier version across all 14,720 genes). |
+| 06.8 | `06.8_apply_confidence_rule.py` | Final step. Reads the 06.7 GTF and 06.5b tables; adds annotation_species, annotation_confidence, annotation_label_vs_best, annotation_protein_coverage; demotes low-confidence rescue names; strips "LOW QUALITY PROTEIN:". Writes ...mosquito_rescue.v3_confidence.gtf. Cutoffs (HIGH 0.8, MED 0.5, SW_HIGH 1e-20) are set at the top of the script. Replaces the old command-line annotation_species step. |
 | 07.1 | `07.1_transfer_annotation.py` | Copies the per-gene SwissProt annotation (`annotation_evidence.SwissProt_BLASTX.best.tsv`) onto another GTF's gene lines by matching each target gene to a known gene in `known_genes.bed`. Usage: `python3 07.1_transfer_annotation.py <target.gtf> <out.gtf>`. SwissProt evidence only: mosquito-rescue labels are not transferred. Match rules below. |
 | 07.2 | `07.2_make_gene_bed_with_evalues.py` | Builds the gene BED with per-database E-values and P-values (see "Gene BED with E-values and P-values"). Run in `pandas_env`. |
 | 07.3 | `07.3_pick_spotcheck_genes.py` | Picks 31 genes for protein-alignment spot-checks (every SwissProt and mosquito tier, 5 database disagreements, 5 unlabeled genes with a hit, plus the gene5028 control). Writes `spotcheck_genes.tsv`. |
 | 07.4 | `07.4_add_pvalues_to_gtf.py` | Copies a GTF and appends P-value attributes to each gene line (`label_db`, `label_evalue`, `label_pvalue`, `pvalue_<db>`), looked up by gene_id from the 07.2 BED. Non-gene lines unchanged. |
 | 07.5 | `07.5_add_p_e_columns.py` | Reads the v2 GTF and the v2 `with_pvalues` GTF; writes two files with extra tab-separated columns after the attributes: P-value in column 10, and a second file with P-value in column 10 and E-value in column 11. See "v2_four_species outputs". |
+| 07.6 | `07.6_make_gene_table.py` | Gene table CSV from the 07.7 GTF: gene_table.v3_confidence_with_Accession.csv. |
+| 07.7 | `07.7_add_accession_column.py` | Adds the accession as an extra column to the col10_pvalue GTF. |
 
 Superseded (old shared-representative approach, in `scripts/old_scripts_superseded/`): `04.1_build_known_gene_representatives.py`, `04.2_prep_known_gene_blastx.sh`, `04.3_known_gene_blastx_array.sh`, plus `.bak` copies of the patched `04.3` merge, old `04.5` join and `05.2`.
 
@@ -183,6 +188,20 @@ Transposon filter: `transpos|retrotranspos|reverse transcriptase|RNA-directed DN
 
 ---
 
+### Confidence rule (06.8)
+
+| Source | Rule | Result |
+|---|---|---|
+| SwissProt | annotation_evalue < 1e-20 | high (8,283); otherwise medium (2,516). Names never changed. |
+| Mosquito_RefSeq | label bitscore / best bitscore for the gene: >= 0.8 high, 0.5-0.8 medium, < 0.5 low | high 1,263 / medium 403 / low 561 |
+
+- Rescue names containing DUF or LOC numbers are low regardless of ratio.
+- Low-confidence rescue genes are renamed "uncharacterized protein" (561 genes). The earlier name is kept in `annotation_name_original`, the best hit in `annotation_similar_to`. The `note` attribute is updated to match.
+- "LOW QUALITY PROTEIN:" is removed from names (56 genes) and recorded as `annotation_flag "low_quality_model"`.
+- Other attributes added: `annotation_species`, `annotation_label_vs_best`, `annotation_protein_coverage`.
+- 13,026 genes carry a label (9,546 high, 2,919 medium, 561 low). 12,465 of them have an informative name; the 561 low-confidence genes are "uncharacterized protein". 1,694 genes remain unannotated.
+- Cutoffs are provisional and supported by the spot-check below; edit them at the top of the script and rerun to change them.
+
 ## Results (2026-10-15)
 
 14,720 genes in the input GTF.
@@ -223,15 +242,21 @@ Output: `results/Cxt_Main_NEW_ANNOT_gene.with_evalues.bed` (14,720 genes plus a 
 
 `results/basefeatures_realgenes.annotated.mosquito_rescue.with_pvalues.gtf`: the rescue GTF with `label_db`, `label_evalue`, `label_pvalue` and `pvalue_<db>` appended to each labeled gene line (genes only carry the databases they have a hit for). Checked: 14,720 lines, non-gene lines identical, 13,026 genes with `label_pvalue`, gene1 and gene5028 correct.
 
-### v2_four_species outputs (07.4, 07.5)
+### v3_confidence outputs (07.2, 07.4, 07.5, 07.6, 07.7)
 
-`basefeatures_realgenes.annotated.mosquito_rescue.v2_four_species.gtf` is the starting GTF for these files. Mosquito-rescue genes carry an extra `annotation_species` attribute, and the mitochondrial genes (`MT-nbis-gene-*`) and rRNA genes (`nbisL1-rrna-*`) are present. How v2 was built is not yet documented here (see TODOs).
+All files are in `results/` and are built from `...mosquito_rescue.v3_confidence.gtf`. The older v2_four_species files are superseded.
 
-| File (in `results/`) | Contents |
+| File | Contents |
 |---|---|
-| `...v2_four_species.with_pvalues.gtf` | v2 GTF plus P-value attributes in column 9 (07.4) |
-| `...v2_four_species.col10_pvalue.gtf` | v2 GTF, columns 1-9 unchanged, column 10 = `label_pvalue` (07.5) |
-| `...v2_four_species.col10_pvalue_col11_evalue.gtf` | Same, plus column 11 = `annotation_evalue` (07.5) |
+| `...v3_confidence.gtf` | Final annotated GTF (all 14,720 genes, 9 columns) |
+| `...v3_confidence.with_pvalues.gtf` | v3 plus P-value attributes in column 9 (07.4) |
+| `...v3_confidence.col10_pvalue.gtf` | Column 10 = label_pvalue (07.5) |
+| `...v3_confidence.col10_pvalue_col11_evalue.gtf` | Column 10 = P-value, column 11 = E-value (07.5) |
+| `...v3_confidence.col10_pvalue_col11_accession.gtf` | Column 10 = P-value, column 11 = accession (07.7) |
+| `Cxt_Main_NEW_ANNOT_gene.v3_confidence.with_evalues.bed` | 42-column gene BED (07.2) |
+| `gene_table.v3_confidence_with_Accession.csv` | Gene table, 14,720 rows (07.6) |
+
+Files with 10 or 11 columns are not strict GTF; use the plain v3 or with_pvalues GTF for tools like gffread.
 
 - Unlabeled genes (`annotation_source "none"`) have NA in columns 10 and 11.
 - Columns 10 and 11 are identical for every labeled gene in practice, because all calls already pass about 1e-5.
@@ -239,9 +264,18 @@ Output: `results/Cxt_Main_NEW_ANNOT_gene.with_evalues.bed` (14,720 genes plus a 
 - Files with 10 or 11 columns are not strict GTF: tools such as `gffread` expect exactly 9. Use them for filtering and keep the plain v2 or `with_pvalues` GTF for downstream tools.
 - Example filter (P-value 1e-10 or better): `awk -F'\t' '$10!="NA" && $10+0 <= 1e-10' <col10 file>`
 
-### Spot-check (in progress)
 
-Protein-alignment spot-check of the 31 genes in `spotcheck_genes.tsv` against their own hit proteins (miniprot, `miniprot_env`), reporting coverage per gene in `spotcheck_coverage.tsv`. Known gaps: no Dmel-labeled genes in the sample, and the 5 unlabeled genes need their best per-database hit aligned.
+### Spot-check (07.3, 07.8)
+
+37 genes (31 from `spotcheck_genes.tsv` plus 6 Histone H4 genes) were aligned to their label proteins with miniprot; results in `spotcheck_coverage.tsv`. Coverage (and gene-model length vs protein length) was compared against annotation_confidence.
+
+- SwissProt high: 11 of 11 aligned, including distant vertebrate orthologs (about 0.33-0.40 identity).
+- SwissProt medium: 1 of 7 aligned; the rest are short gene models or small/fast-evolving proteins.
+- Rescue high: 4 of 6 aligned. Rescue medium: 1 of 2. Rescue low: 1 of 6, and the aligned one (mucin) had 0.26 identity, so the demotions look justified.
+- All three Ionotropic receptor genes failed to align at every confidence level, a miniprot limitation on a fast-evolving family, not a labeling error.
+- Several low-coverage genes with high identity (gene6563, gene5253) are fragmentary gene models, so protein coverage alone should not be used as a hard filter.
+
+Recommendation: use `annotation_confidence` (high for stringent analyses, high+medium for general use). E-value/P-value cutoffs add little because every label already passes about 1e-5.
 
 ## Key files
 
@@ -278,13 +312,7 @@ Protein-alignment spot-check of the 31 genes in `spotcheck_genes.tsv` against th
 ## Remaining TODOs
 
 - [ ] SwissProt release details for the Inputs table (`blastdbcmd -db results/blastx_db/swissprot -info`).
-- [ ] `06.3` is absent from the numbering; check `old_scripts/` and `old_scripts_superseded/`, or renumber `06.4`.
-- [ ] Spot-check about 20 of the 611 `old_higher_bitscore` choices.
-- [ ] Decide whether to rerun the 06.x rescue on the 3,921 unlabeled genes.
-- [ ] Save the validation one-liners as `05.3_validate_annotation.sh`.
-- [ ] Update stale step numbers in comments of `04.3`, `04.4`, `04.5`.
-- [ ] Finish the 07.3 spot-check, then pick an E-value/P-value cutoff based on coverage by tier.
-- [ ] Align the 5 unlabeled spot-check genes' best per-database hit.
-- [ ] Document how `v2_four_species.gtf` was built, and confirm which GTF/BED paths 07.2 and 07.4 pointed at for the v2 files.
-- [ ] Housekeeping: add `__pycache__/` and `*.bak` to `.gitignore`; move the `.bak` files into `old_scripts_superseded/`.
-
+- [ ] `06.3` is absent from the numbering; renumber `06.4` or note it.
+- [ ] Validation one-liners as `05.3_validate_annotation.sh`.
+- [ ] Stale step numbers in comments of `04.3`, `04.4`, `04.5`.
+- [ ] `.gitignore`: add `__pycache__/` and `*.bak*`; move `.bak` files into `old_scripts_superseded/`.

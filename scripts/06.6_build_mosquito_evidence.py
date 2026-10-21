@@ -26,6 +26,7 @@ def clean_name(stitle, sseqid):
     t = re.sub(r"\s*\[[^\[\]]+\]\s*$", "", t)
     t = re.sub(r"^PREDICTED:\s*", "", t, flags=re.I)
     t = re.sub(r"\s+isoform\s+\S+$", "", t, flags=re.I)
+    t = re.sub(r",\s*partial\s*$", "", t, flags=re.I)
     t = t.replace('"', "'").replace(";", ",").replace("\\", "")
     return t.strip()
 

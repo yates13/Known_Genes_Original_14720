@@ -4,3 +4,8 @@ data/
 results/
 logs/
 *.tmp
+__pycache__/
+*.bak*
+results/
+logs/
+data/chunks/

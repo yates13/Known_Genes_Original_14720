@@ -4,9 +4,12 @@
 import re
 import pandas as pd
 
-GTF = "../results/basefeatures_realgenes.annotated.mosquito_rescue.gtf"
-BED = "../results/Cxt_Main_NEW_ANNOT_gene.with_evalues.bed"
-OUT = "../results/basefeatures_realgenes.annotated.mosquito_rescue.with_pvalues.gtf"
+#GTF = "../results/basefeatures_realgenes.annotated.mosquito_rescue.gtf"
+#BED = "../results/Cxt_Main_NEW_ANNOT_gene.with_evalues.bed"
+#OUT = "../results/basefeatures_realgenes.annotated.mosquito_rescue.with_pvalues.gtf"
+GTF = "../results/basefeatures_realgenes.annotated.mosquito_rescue.v3_confidence.gtf"
+BED = "../results/Cxt_Main_NEW_ANNOT_gene.v3_confidence.with_evalues.bed"
+OUT = "../results/basefeatures_realgenes.annotated.mosquito_rescue.v3_confidence.with_pvalues.gtf"
 
 # BED column -> GTF attribute name
 FIELDS = {
