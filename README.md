@@ -111,8 +111,9 @@ Known_Genes_Original_14720/
 | 07.3 | `07.3_pick_spotcheck_genes.py` | Picks 31 genes for protein-alignment spot-checks (every SwissProt and mosquito tier, 5 database disagreements, 5 unlabeled genes with a hit, plus the gene5028 control). Writes `spotcheck_genes.tsv`. |
 | 07.4 | `07.4_add_pvalues_to_gtf.py` | Copies a GTF and appends P-value attributes to each gene line (`label_db`, `label_evalue`, `label_pvalue`, `pvalue_<db>`), looked up by gene_id from the 07.2 BED. Non-gene lines unchanged. |
 | 07.5 | `07.5_add_p_e_columns.py` | Reads the v2 GTF and the v2 `with_pvalues` GTF; writes two files with extra tab-separated columns after the attributes: P-value in column 10, and a second file with P-value in column 10 and E-value in column 11. See "v2_four_species outputs". |
-| 07.6 | `07.6_make_gene_table.py` | Gene table CSV from the 07.7 GTF: gene_table.v3_confidence_with_Accession.csv. |
+| 07.6 | `07.6_make_gene_table.py` | Gene tables from the 07.7 GTF. Writes `gene_table.v3_confidence_with_Accession.csv` (18 columns: gene_id through protein_coverage, plus name_original and similar_to) and `gene_table.v3_confidence_short.csv` (14 columns, gene_id through evalue) for easy viewing. Run in `pandas_env`. |
 | 07.7 | `07.7_add_accession_column.py` | Adds the accession as an extra column to the col10_pvalue GTF. |
+| 07.9 | `07.9_make_slim_gtf.py` | Slim strict 9-column GTF. Same 14,720 gene lines and columns 1-8 as the v3 GTF; column 9 keeps only gene_id, ID, Name, annotation_source, annotation_method, annotation_accession, annotation_name, annotation_evalue and annotation_confidence. Edit `KEEP` at the top of the script to change the attributes. Run from `scripts/`. |
 
 Superseded (old shared-representative approach, in `scripts/old_scripts_superseded/`): `04.1_build_known_gene_representatives.py`, `04.2_prep_known_gene_blastx.sh`, `04.3_known_gene_blastx_array.sh`, plus `.bak` copies of the patched `04.3` merge, old `04.5` join and `05.2`.
 
@@ -255,6 +256,10 @@ All files are in `results/` and are built from `...mosquito_rescue.v3_confidence
 | `...v3_confidence.col10_pvalue_col11_accession.gtf` | Column 10 = P-value, column 11 = accession (07.7) |
 | `Cxt_Main_NEW_ANNOT_gene.v3_confidence.with_evalues.bed` | 42-column gene BED (07.2) |
 | `gene_table.v3_confidence_with_Accession.csv` | Gene table, 14,720 rows (07.6) |
+| `...v3_confidence.slim.gtf` | Slim 9-column GTF for downstream analysis (07.9); readable by gffread and similar tools |
+| `gene_table.v3_confidence_with_Accession.csv` | Full gene table, 14,720 rows, 18 columns (07.6) |
+| `gene_table.v3_confidence_short.csv` | Short gene table, 14 columns ending at evalue (07.6) |
+
 
 Files with 10 or 11 columns are not strict GTF; use the plain v3 or with_pvalues GTF for tools like gffread.
 
@@ -294,6 +299,7 @@ Recommendation: use `annotation_confidence` (high for stringent analyses, high+m
 | `results/blastx_chunks/known_genes.NN.blastx.tsv` | per-gene BLASTX hits |
 | `results/old_oct6/` | archived shared-representative outputs |
 | `results/basefeatures_updated_high_confidence.with_notes.gtf` | OLD GTF with the Axin error; do not use |
+| `results/...v3_confidence.slim.gtf` | Slim GTF (core attributes + confidence); use this for most downstream work |
 
 ## Validation done
 
