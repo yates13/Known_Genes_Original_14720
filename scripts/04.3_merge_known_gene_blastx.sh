@@ -10,8 +10,8 @@
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=c832500103@colostate.edu
 
-# 04.4 - merge the 20 BLASTX parts from 04.3 into one file for 04.5
-# Submit from scripts/ after all 04.3 array tasks have COMPLETED.
+# 04.3 - merge the 20 BLASTX parts from 04.2 into one file for 04.4
+# Submit from scripts/ after all 04.2 array tasks have COMPLETED.
 set -euo pipefail
 
 RES=../results
