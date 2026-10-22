@@ -319,4 +319,4 @@ Recommendation: use `annotation_confidence` (high for stringent analyses, high+m
 
 ## Remaining TODOs
 
-- [ ] Regenerate the per-feature BED files (`gtf_to_bed.R`) from the v3 GTF so the note column shows the v3 names.
+- [ ] Verify README is up to date and then use this pipeline on GMAP GTF.
