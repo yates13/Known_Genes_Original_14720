@@ -2,7 +2,7 @@
 
 Culex tarsalis CtarK1 updated GTF. Re-annotates the 14,720 known genes by running BLASTX on each gene's **own** genomic sequence against SwissProt, choosing the best evidence per gene, and rebuilding the notes in the final GTF.
 
-Last updated: 2026-10-21. Status: complete. Final annotation release is the v3_confidence GTF (06.8); 07.x outputs rebuilt on v3; spot-check done. See "Remaining TODOs".
+Last updated: 2026-10-22. Status: complete. Final annotation release is the v3_confidence GTF (06.8); 07.x outputs rebuilt on v3; spot-check done. See "Remaining TODOs".
 Repo: github.com/yates13/Known_Genes_Original_14720.
 
 ---
@@ -45,7 +45,7 @@ results/basefeatures_realgenes.annotated.mosquito_rescue.gtf
 - BLAST+ 2.17.0: `/scratch/alpine/c832500103@colostate.edu/blast_env`
 - samtools: `.../conda_envs/hisat2_env/bin/samtools`; bedtools: `.../conda_envs/cellSquito/bin/bedtools` (needs `LD_LIBRARY_PATH=.../hisat2_env/lib`)
 - Python/pandas/numpy: `.../conda_envs/pandas_env` (07.x scripts)
-- miniprot: `.../conda_envs/miniprot_env` (spot-check; to be created)
+- miniprot: `.../conda_envs/miniprot_env` (binary only, no Python of its own: run 07.8 with the `pandas_env` Python and `miniprot_env/bin` on PATH)
 - Run every script from `scripts/` (they use `../` paths)
 
 ## Inputs
@@ -54,7 +54,7 @@ results/basefeatures_realgenes.annotated.mosquito_rescue.gtf
 |---|---|
 | `Spades_Pipeline_Organized/results/basefeatures_realgenes.gtf` (14,720 gene lines; identical copy at `data/basefeatures_realgenes.gtf`) | Earlier pipeline (`Spades_Pipeline_Organized`) |
 | `Spades_Pipeline_Organized/data/genome.fa` | CtarK1 genome |
-| `results/blastx_db/swissprot.*` | Pre-formatted NCBI SwissProt BLAST db (taxdb files alongside), unpacked from `Spades_Pipeline_Organized/data/swissprot.tar.gz`; no `makeblastdb` was run. **Release: TODO, paste `blastdbcmd -db results/blastx_db/swissprot -info` (date, sequences, letters)** |
+| `results/blastx_db/swissprot.*` | Pre-formatted NCBI SwissProt BLAST db (taxdb files alongside), unpacked from `Spades_Pipeline_Organized/data/swissprot.tar.gz`; no `makeblastdb` was run. **Release: built Jul 14, 2026 (487,492 sequences, 185,956,103 residues, BLASTDB version 5)** |
 
 ## Directory layout
 
@@ -78,6 +78,7 @@ Known_Genes_Original_14720/
       Aedes.tsv
       Agam.tsv
       Dmel.tsv
+    mosquito_diamond_cov/                  06.5b tables with query-coverage columns (used by 06.8)
   scripts/
     old_scripts_superseded/                replaced scripts and .bak copies
 ```
@@ -97,12 +98,12 @@ Known_Genes_Original_14720/
 | 05.1 | `05.1_build_annotation_evidence.py` | Evidence table, one row per gene (accession, identity, alignment length) |
 | 05.1b | `05.1b_choose_best_evidence.py` | One evidence row per gene from the new run and the old transcript run (rules below) |
 | 05.2 | `05.2_build_gtf_with_annotation.py` | Write the annotated GTF; reads `annotation_evidence.SwissProt_BLASTX.best.tsv` |
+| 05.3 | `05.3_validate_annotation.sh` | Sanity checks on the final v3 GTF (line counts, confidence and species counts, gene5028 and gene9910). Run after 06.8: `bash 05.3_validate_annotation.sh`. |
 | 06.1 | `06.1_diamond_validation.py` | Validates candidate no-hit genes and associated transcript evidence before mosquito-homology rescue. |
 | 06.2 | `06.2_candidate_transcripts.py` | Identifies candidate transcripts for genes lacking SwissProt annotation; generates transcript lists and rescue inputs. |
-| 06.4 | `06.4_mosquito_blastx_pilot.sh` | Pilot DIAMOND/BLASTX search on a subset of unlabeled genes to test mosquito-protein annotation workflows and filtering rules. (No 06.3 exists; see TODOs.) |
+| 06.4 | `06.4_mosquito_blastx_pilot.sh` | Pilot DIAMOND/BLASTX search on a subset of unlabeled genes to test mosquito-protein annotation workflows and filtering rules. (06.3 was never used; numbering goes from 06.2 to 06.4.) |
 | 06.5 | `06.5_mosquito_diamond_unlabeled_genes.sh` | DIAMOND searches of unlabeled genes against Cquinq, Aedes, Agam, Dmel. Per-database hit tables in results/mosquito_diamond/. |
-| 06.5a | `06.5a_...` | TODO: one-line description (I don't have this script's contents). |
-| 06.5b | `06.5b_...` | Reruns the four DIAMOND searches with query-coverage columns; tables in results/mosquito_diamond_cov/. Best hits identical to 06.5. |
+| 06.5b | `06.5b_mosquito_diamond_coverage.sh` | Reruns the four DIAMOND searches with query-coverage columns; tables in results/mosquito_diamond_cov/. Best hits identical to 06.5. |
 | 06.6 | `06.6_build_mosquito_evidence.py` | Removes vague labels, picks the best name per gene by bitscore, writes annotation_evidence.Mosquito_DIAMOND.tsv. A single pass reproduces all 2,227 labels (including the 1,222 formerly produced by a separate stage-2 filter). |
 | 06.7 | `06.7_build_mosquito_rescue_gtf.py` | Adds mosquito labels to genes with annotation_source "none". Output: ...mosquito_rescue.gtf (0 accession differences from the earlier version across all 14,720 genes). |
 | 06.8 | `06.8_apply_confidence_rule.py` | Final step. Reads the 06.7 GTF and 06.5b tables; adds annotation_species, annotation_confidence, annotation_label_vs_best, annotation_protein_coverage; demotes low-confidence rescue names; strips "LOW QUALITY PROTEIN:". Writes ...mosquito_rescue.v3_confidence.gtf. Cutoffs (HIGH 0.8, MED 0.5, SW_HIGH 1e-20) are set at the top of the script. Replaces the old command-line annotation_species step. |
@@ -110,9 +111,11 @@ Known_Genes_Original_14720/
 | 07.2 | `07.2_make_gene_bed_with_evalues.py` | Builds the gene BED with per-database E-values and P-values (see "Gene BED with E-values and P-values"). Run in `pandas_env`. |
 | 07.3 | `07.3_pick_spotcheck_genes.py` | Picks 31 genes for protein-alignment spot-checks (every SwissProt and mosquito tier, 5 database disagreements, 5 unlabeled genes with a hit, plus the gene5028 control). Writes `spotcheck_genes.tsv`. |
 | 07.4 | `07.4_add_pvalues_to_gtf.py` | Copies a GTF and appends P-value attributes to each gene line (`label_db`, `label_evalue`, `label_pvalue`, `pvalue_<db>`), looked up by gene_id from the 07.2 BED. Non-gene lines unchanged. |
-| 07.5 | `07.5_add_p_e_columns.py` | Reads the v2 GTF and the v2 `with_pvalues` GTF; writes two files with extra tab-separated columns after the attributes: P-value in column 10, and a second file with P-value in column 10 and E-value in column 11. See "v2_four_species outputs". |
+| 07.5 | `07.5_add_p_e_columns.py` | Reads the v3 GTF and the v3 `with_pvalues` GTF; writes two files with extra tab-separated columns after the attributes: P-value in column 10, and a second file with P-value in column 10 and E-value in column 11. See "v3_confidence outputs". |
 | 07.6 | `07.6_make_gene_table.py` | Gene tables from the 07.7 GTF. Writes `gene_table.v3_confidence_with_Accession.csv` (18 columns: gene_id through protein_coverage, plus name_original and similar_to) and `gene_table.v3_confidence_short.csv` (14 columns, gene_id through evalue) for easy viewing. Run in `pandas_env`. |
 | 07.7 | `07.7_add_accession_column.py` | Adds the accession as an extra column to the col10_pvalue GTF. |
+| 07.7 | `07.7_add_accession_column.py` | Adds the accession as column 11 of the col10_pvalue GTF; writes `...v3_confidence.col10_pvalue_col11_accession.gtf`. |
+| 07.8 | `07.8_spotcheck_miniprot.py` | Aligns each spot-check gene's label protein to the gene with miniprot and reports coverage and identity. Usage: `python3 07.8_spotcheck_miniprot.py ../results/spotcheck_ids.txt` (needs the `pandas_env` Python and miniprot on PATH). Writes `spotcheck_coverage.tsv`. |
 | 07.9 | `07.9_make_slim_gtf.py` | Slim strict 9-column GTF. Same 14,720 gene lines and columns 1-8 as the v3 GTF; column 9 keeps only gene_id, ID, Name, annotation_source, annotation_method, annotation_accession, annotation_name, annotation_evalue and annotation_confidence. Edit `KEEP` at the top of the script to change the attributes. Run from `scripts/`. |
 
 Superseded (old shared-representative approach, in `scripts/old_scripts_superseded/`): `04.1_build_known_gene_representatives.py`, `04.2_prep_known_gene_blastx.sh`, `04.3_known_gene_blastx_array.sh`, plus `.bak` copies of the patched `04.3` merge, old `04.5` join and `05.2`.
@@ -217,11 +220,11 @@ Transposon filter: `transpos|retrotranspos|reverse transcriptase|RNA-directed DN
 - Incorporation of Agam and Dmel recovered 1,005 additional genes beyond the earlier Cquinq+Aedes-only rescue workflow.
 - Label sources in the final GTF: 10,799 SwissProt annotations and 2,227 Mosquito_RefSeq annotations.
 - Output GTF has 14,720 gene lines, matching the input GTF; only gene-line attributes were modified.
-- Final annotation release: results/basefeatures_realgenes.annotated.mosquito_rescue.gtf (a `v2_four_species` version also exists, see below).
+- Rescue GTF (06.7): results/basefeatures_realgenes.annotated.mosquito_rescue.gtf. The final release is its v3_confidence version (06.8; see "Confidence rule" and "v3_confidence outputs").
 
 ## Gene BED with E-values and P-values (07.2)
 
-Output: `results/Cxt_Main_NEW_ANNOT_gene.with_evalues.bed` (14,720 genes plus a header row; 42 tab-separated columns). Built from `basefeatures_realgenes.annotated.mosquito_rescue.gtf`, `annotation_evidence.SwissProt_BLASTX.best.tsv`, `annotation_evidence.Mosquito_DIAMOND.tsv` and `results/mosquito_diamond/*.tsv`. Requested so low-confidence calls can be filtered.
+Output: `results/Cxt_Main_NEW_ANNOT_gene.v3_confidence.with_evalues.bed` (14,720 genes plus a header row; 42 tab-separated columns). Built from `basefeatures_realgenes.annotated.mosquito_rescue.v3_confidence.gtf`, `annotation_evidence.SwissProt_BLASTX.best.tsv`, `annotation_evidence.Mosquito_DIAMOND.tsv` and `results/mosquito_diamond/*.tsv`. Requested so low-confidence calls can be filtered.
 
 | Columns | Contents |
 |---|---|
@@ -241,7 +244,7 @@ Output: `results/Cxt_Main_NEW_ANNOT_gene.with_evalues.bed` (14,720 genes plus a 
 
 ### P-value GTF (07.4)
 
-`results/basefeatures_realgenes.annotated.mosquito_rescue.with_pvalues.gtf`: the rescue GTF with `label_db`, `label_evalue`, `label_pvalue` and `pvalue_<db>` appended to each labeled gene line (genes only carry the databases they have a hit for). Checked: 14,720 lines, non-gene lines identical, 13,026 genes with `label_pvalue`, gene1 and gene5028 correct.
+`results/basefeatures_realgenes.annotated.mosquito_rescue.v3_confidence.with_pvalues.gtf`: the v3 GTF with `label_db`, `label_evalue`, `label_pvalue` and `pvalue_<db>` appended to each labeled gene line (genes only carry the databases they have a hit for). Checked: 14,720 lines, non-gene lines identical, 13,026 genes with `label_pvalue`, gene1 and gene5028 correct.
 
 ### v3_confidence outputs (07.2, 07.4, 07.5, 07.6, 07.7)
 
@@ -255,7 +258,6 @@ All files are in `results/` and are built from `...mosquito_rescue.v3_confidence
 | `...v3_confidence.col10_pvalue_col11_evalue.gtf` | Column 10 = P-value, column 11 = E-value (07.5) |
 | `...v3_confidence.col10_pvalue_col11_accession.gtf` | Column 10 = P-value, column 11 = accession (07.7) |
 | `Cxt_Main_NEW_ANNOT_gene.v3_confidence.with_evalues.bed` | 42-column gene BED (07.2) |
-| `gene_table.v3_confidence_with_Accession.csv` | Gene table, 14,720 rows (07.6) |
 | `...v3_confidence.slim.gtf` | Slim 9-column GTF for downstream analysis (07.9); readable by gffread and similar tools |
 | `gene_table.v3_confidence_with_Accession.csv` | Full gene table, 14,720 rows, 18 columns (07.6) |
 | `gene_table.v3_confidence_short.csv` | Short gene table, 14 columns ending at evalue (07.6) |
@@ -265,8 +267,7 @@ Files with 10 or 11 columns are not strict GTF; use the plain v3 or with_pvalues
 
 - Unlabeled genes (`annotation_source "none"`) have NA in columns 10 and 11.
 - Columns 10 and 11 are identical for every labeled gene in practice, because all calls already pass about 1e-5.
-- Checked: 14,720 lines in all three files; 10 (or 11) columns on every row; columns 1-9 identical to v2 (diff = 0); 1,694 NA rows in column 10, equal to the 1,694 `none` genes; no labeled gene has NA in column 11.
-- Files with 10 or 11 columns are not strict GTF: tools such as `gffread` expect exactly 9. Use them for filtering and keep the plain v2 or `with_pvalues` GTF for downstream tools.
+- Checked: 14,720 lines in all three files; 10 (or 11) columns on every row; columns 1-9 identical to the source GTF (diff = 0, checked on the v2 build); 1,694 NA rows in column 10, equal to the 1,694 `none` genes; no labeled gene has NA in column 11.
 - Example filter (P-value 1e-10 or better): `awk -F'\t' '$10!="NA" && $10+0 <= 1e-10' <col10 file>`
 
 
@@ -286,12 +287,13 @@ Recommendation: use `annotation_confidence` (high for stringent analyses, high+m
 
 | File | Meaning |
 |---|---|
-| `results/basefeatures_realgenes.annotated.mosquito_rescue.gtf` | FINAL annotated GTF (SwissProt + mosquito rescue) |
-| `results/basefeatures_realgenes.annotated.mosquito_rescue.v2_four_species.gtf` | v2 version with `annotation_species` and mito/rRNA genes |
+| `results/basefeatures_realgenes.annotated.mosquito_rescue.v3_confidence.gtf` | FINAL annotated GTF (SwissProt + mosquito rescue + confidence ratings) |
+| `results/basefeatures_realgenes.annotated.mosquito_rescue.gtf` | 06.7 rescue GTF (input to 06.8) |
+| `results/basefeatures_realgenes.annotated.mosquito_rescue.v2_four_species.gtf` | v2 version with `annotation_species` and mito/rRNA genes (superseded by v3) |
 | `results/basefeatures_realgenes.annotated.gtf` | SwissProt-only annotated GTF (05.2) |
-| `results/...v2_four_species.col10_pvalue.gtf` / `...col10_pvalue_col11_evalue.gtf` | v2 with P-value (col 10) and E-value (col 11) for filtering |
-| `results/...with_pvalues.gtf` / `...v2_four_species.with_pvalues.gtf` | GTFs with P-value attributes in column 9 |
-| `results/Cxt_Main_NEW_ANNOT_gene.with_evalues.bed` | Gene BED with label, per-database E-values and P-values (42 columns) |
+| `results/...v3_confidence.col10_pvalue.gtf` / `...col10_pvalue_col11_evalue.gtf` / `...col10_pvalue_col11_accession.gtf` | v3 with P-value (col 10) and E-value or accession (col 11) for filtering; the v2 versions are superseded |
+| `results/...v3_confidence.with_pvalues.gtf` | v3 GTF with P-value attributes in column 9 |
+| `results/Cxt_Main_NEW_ANNOT_gene.v3_confidence.with_evalues.bed` | Gene BED with label, per-database E-values and P-values (42 columns) |
 | `results/annotation_lookup.tsv` | gene, source, name, tier |
 | `results/annotation_evidence.SwissProt_BLASTX.best.tsv` | chosen evidence, one row per gene |
 | `results/annotation_evidence.Mosquito_DIAMOND.tsv` | mosquito rescue evidence |
@@ -313,12 +315,8 @@ Recommendation: use `annotation_confidence` (high for stringent analyses, high+m
 
 ## Not part of the fix
 
-`06.1_diamond_validation.py`, `06.2_candidate_transcripts.py`, `06.4_mosquito_blastx_pilot.sh`: early attempts to annotate no-hit genes with DIAMOND and mosquito proteins. Their inputs come from the old no-hit list (Oct 7). 05.1/05.2 do not read any 06.x output; the SwissProt GTF is built without them. The mosquito rescue (06.5-06.7) runs after 05.2 and takes the 05.2 GTF as its input.
+`06.1_diamond_validation.py`, `06.2_candidate_transcripts.py`, `06.4_mosquito_blastx_pilot.sh`: early attempts to annotate no-hit genes with DIAMOND and mosquito proteins. Their inputs come from the old no-hit list (Oct 7). 05.1/05.2 do not read any 06.x output; the SwissProt GTF is built without them. The mosquito rescue (06.5-06.8) runs after 05.2 and takes the 05.2 GTF as its input.
 
 ## Remaining TODOs
 
-- [ ] SwissProt release details for the Inputs table (`blastdbcmd -db results/blastx_db/swissprot -info`).
-- [ ] `06.3` is absent from the numbering; renumber `06.4` or note it.
-- [ ] Validation one-liners as `05.3_validate_annotation.sh`.
-- [ ] Stale step numbers in comments of `04.3`, `04.4`, `04.5`.
-- [ ] `.gitignore`: add `__pycache__/` and `*.bak*`; move `.bak` files into `old_scripts_superseded/`.
+- [ ] Regenerate the per-feature BED files (`gtf_to_bed.R`) from the v3 GTF so the note column shows the v3 names.
