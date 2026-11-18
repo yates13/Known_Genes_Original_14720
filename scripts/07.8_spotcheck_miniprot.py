@@ -32,7 +32,7 @@ BIN_DIRS = ["/scratch/alpine/c832500103@colostate.edu/blast_env/bin",
             "/scratch/alpine/c832500103@colostate.edu/conda_envs/miniprot_env/bin"]
 os.environ["PATH"] += os.pathsep + os.pathsep.join(BIN_DIRS)
 
-GTF = "../results/basefeatures_realgenes.annotated.mosquito_rescue.v2_four_species.col10_pvalue_col11_accession.gtf"
+GTF = "../results/basefeatures_realgenes.annotated.mosquito_rescue.v3_confidence.col10_pvalue_col11_accession.gtf"
 GENES_FA = "../results/known_genes.fa"
 SWISS = "../results/blastx_db/swissprot"
 MOS = [f"../results/mosquito_proteins/{d}.faa" for d in ["Cquinq", "Aedes", "Agam", "Dmel"]]

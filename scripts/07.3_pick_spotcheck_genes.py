@@ -6,7 +6,7 @@
 #python3 07.2_make_gene_bed_with_evalues.py
 
 import pandas as pd
-BED = "../results/Cxt_Main_NEW_ANNOT_gene.with_evalues.bed"
+BED = "../results/Cxt_Main_NEW_ANNOT_gene.v3_confidence.with_evalues.bed"
 OUT = "../results/spotcheck_genes.tsv"
 SEED = 13
 b = pd.read_csv(BED, sep="\t", na_values="NA")

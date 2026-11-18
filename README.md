@@ -99,9 +99,6 @@ Known_Genes_Original_14720/
 | 05.1b | `05.1b_choose_best_evidence.py` | One evidence row per gene from the new run and the old transcript run (rules below) |
 | 05.2 | `05.2_build_gtf_with_annotation.py` | Write the annotated GTF; reads `annotation_evidence.SwissProt_BLASTX.best.tsv` |
 | 05.3 | `05.3_validate_annotation.sh` | Sanity checks on the final v3 GTF (line counts, confidence and species counts, gene5028 and gene9910). Run after 06.8: `bash 05.3_validate_annotation.sh`. |
-| 06.1 | `06.1_diamond_validation.py` | Validates candidate no-hit genes and associated transcript evidence before mosquito-homology rescue. |
-| 06.2 | `06.2_candidate_transcripts.py` | Identifies candidate transcripts for genes lacking SwissProt annotation; generates transcript lists and rescue inputs. |
-| 06.4 | `06.4_mosquito_blastx_pilot.sh` | Pilot DIAMOND/BLASTX search on a subset of unlabeled genes to test mosquito-protein annotation workflows and filtering rules. (06.3 was never used; numbering goes from 06.2 to 06.4.) |
 | 06.5 | `06.5_mosquito_diamond_unlabeled_genes.sh` | DIAMOND searches of unlabeled genes against Cquinq, Aedes, Agam, Dmel. Per-database hit tables in results/mosquito_diamond/. |
 | 06.5b | `06.5b_mosquito_diamond_coverage.sh` | Reruns the four DIAMOND searches with query-coverage columns; tables in results/mosquito_diamond_cov/. Best hits identical to 06.5. |
 | 06.6 | `06.6_build_mosquito_evidence.py` | Removes vague labels, picks the best name per gene by bitscore, writes annotation_evidence.Mosquito_DIAMOND.tsv. A single pass reproduces all 2,227 labels (including the 1,222 formerly produced by a separate stage-2 filter). |
@@ -112,7 +109,7 @@ Known_Genes_Original_14720/
 | 07.3 | `07.3_pick_spotcheck_genes.py` | Picks 31 genes for protein-alignment spot-checks (every SwissProt and mosquito tier, 5 database disagreements, 5 unlabeled genes with a hit, plus the gene5028 control). Writes `spotcheck_genes.tsv`. |
 | 07.4 | `07.4_add_pvalues_to_gtf.py` | Copies a GTF and appends P-value attributes to each gene line (`label_db`, `label_evalue`, `label_pvalue`, `pvalue_<db>`), looked up by gene_id from the 07.2 BED. Non-gene lines unchanged. |
 | 07.5 | `07.5_add_p_e_columns.py` | Reads the v3 GTF and the v3 `with_pvalues` GTF; writes two files with extra tab-separated columns after the attributes: P-value in column 10, and a second file with P-value in column 10 and E-value in column 11. See "v3_confidence outputs". |
-| 07.6 | `07.6_make_gene_table.py` | Gene tables from the 07.7 GTF. Writes `gene_table.v3_confidence_with_Accession.csv` (18 columns: gene_id through protein_coverage, plus name_original and similar_to) and `gene_table.v3_confidence_short.csv` (14 columns, gene_id through evalue) for easy viewing. Run in `pandas_env`. |
+| 07.6 | `07.6_make_gene_table.py` | Gene tables from the 07.7 GTF. Writes `gene_table.v3_confidence_with_Accession.csv` (18 columns: gene_id through protein_coverage, plus name_original and similar_to) and `gene_table.v3_confidence_short.csv` (14 columns, gene_id through evalue) for easy viewing. Run after 07.7 (it reads the 07.7 output). Run in `pandas_env`. |
 | 07.7 | `07.7_add_accession_column.py` | Adds the accession as an extra column to the col10_pvalue GTF. |
 | 07.7 | `07.7_add_accession_column.py` | Adds the accession as column 11 of the col10_pvalue GTF; writes `...v3_confidence.col10_pvalue_col11_accession.gtf`. |
 | 07.8 | `07.8_spotcheck_miniprot.py` | Aligns each spot-check gene's label protein to the gene with miniprot and reports coverage and identity. Usage: `python3 07.8_spotcheck_miniprot.py ../results/spotcheck_ids.txt` (needs the `pandas_env` Python and miniprot on PATH). Writes `spotcheck_coverage.tsv`. |
@@ -160,6 +157,42 @@ python3 05.2_build_gtf_with_annotation.py
 ```
 
 Rerun only failed tasks: `sbatch --array=7,12 04.2_blastx_array.sh`.
+
+
+
+### Running the rescue, confidence and output steps (06.5-07.9)
+
+
+
+```bash
+
+cd scripts
+
+sbatch 06.5_mosquito_diamond_unlabeled_genes.sh   # DIAMOND vs the 4 proteomes; reads the 05.2 GTF
+
+sbatch 06.5b_mosquito_diamond_coverage.sh         # same searches with coverage columns
+
+python3 06.6_build_mosquito_evidence.py
+
+python3 06.7_build_mosquito_rescue_gtf.py
+
+python3 06.8_apply_confidence_rule.py
+
+bash 05.3_validate_annotation.sh                  # checks are specific to this genome's counts
+
+# optional outputs, in this order (pandas_env):
+
+python3 07.2_make_gene_bed_with_evalues.py && python3 07.4_add_pvalues_to_gtf.py && \
+
+python3 07.5_add_p_e_columns.py && python3 07.7_add_accession_column.py && python3 07.6_make_gene_table.py
+
+python3 07.9_make_slim_gtf.py
+
+```
+
+
+
+The four proteomes must exist as `results/mosquito_proteins/<db>.faa` (Cquinq, Aedes, Agam, Dmel) before 06.5 runs; the scripts build the DIAMOND databases from them.
 
 ### Verification after the array
 
@@ -315,7 +348,7 @@ Recommendation: use `annotation_confidence` (high for stringent analyses, high+m
 
 ## Not part of the fix
 
-`06.1_diamond_validation.py`, `06.2_candidate_transcripts.py`, `06.4_mosquito_blastx_pilot.sh`: early attempts to annotate no-hit genes with DIAMOND and mosquito proteins. Their inputs come from the old no-hit list (Oct 7). 05.1/05.2 do not read any 06.x output; the SwissProt GTF is built without them. The mosquito rescue (06.5-06.8) runs after 05.2 and takes the 05.2 GTF as its input.
+`06.1_diamond_validation.py`, `06.2_candidate_transcripts.py`, `06.4_mosquito_blastx_pilot.sh`: early attempts to annotate no-hit genes with DIAMOND and mosquito proteins, now in `scripts/old_scripts_superseded/`. Their inputs come from the old no-hit list (Oct 7) and they are not needed to rerun the pipeline. 06.3 was never used, so the numbering goes from 05.x to 06.5. 05.1/05.2 do not read any 06.x output; the SwissProt GTF is built without them. The mosquito rescue (06.5-06.8) runs after 05.2 and takes the 05.2 GTF as its input.
 
 ## Remaining TODOs
 
