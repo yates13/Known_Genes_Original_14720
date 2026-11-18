@@ -76,9 +76,9 @@ bed = pd.DataFrame(rows, columns=["chrom","start","end","gene_id","score","stran
                                   "annotation_source","annotation_name"])
 
 bed = bed.merge(label, left_on="gene_id", right_index=True, how="left")
-# a SwissProt row must not label a gene whose GTF source is Mosquito_RefSeq, and vice versa
+# a SwissProt row must not label a gene whose GTF source is Insect_DIAMOND (formerly Mosquito_RefSeq), and vice versa
 is_sp  = bed["annotation_source"].str.contains("SwissProt", na=False)
-is_mq  = bed["annotation_source"].str.contains("Mosquito", na=False)
+is_mq  = bed["annotation_source"].str.contains("Insect_DIAMOND|Mosquito", na=False)
 mismatch = (is_sp & (bed["label_db"] != "SwissProt")) | (is_mq & (bed["label_db"] == "SwissProt"))
 bed.loc[mismatch | ~(is_sp | is_mq), [c for c in bed.columns if c.startswith("label_")]] = pd.NA
 bed = bed.merge(per_db, left_on="gene_id", right_index=True, how="left")

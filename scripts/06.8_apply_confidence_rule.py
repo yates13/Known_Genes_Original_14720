@@ -14,6 +14,7 @@ COV = "../results/mosquito_diamond_cov/{}.tsv"
 DBS = {"Cquinq": "Culex quinquefasciatus", "Aedes": "Aedes aegypti",
        "Agam": "Anopheles gambiae", "Dmel": "Drosophila melanogaster"}
 HIGH, MED, SW_HIGH = 0.8, 0.5, 1e-20
+RESCUE_SOURCES = {"Insect_DIAMOND", "Mosquito_RefSeq"}   # old label kept so pre-rename GTFs still work
 VAGUE = re.compile(r"DUF\d|\bLOC\d|uncharacteri[sz]ed|hypothetical", re.I)
 
 def acc(s):
@@ -64,7 +65,7 @@ with open(IN_GTF) as fin, open(OUT_GTF, "w") as fout:
             except (TypeError, ValueError):
                 conf = "unverified"
             add.append(("annotation_confidence", conf)); stats[("SwissProt", conf)] += 1
-        elif src == "Mosquito_RefSeq":
+        elif src in RESCUE_SOURCES:
             accn, name = get(a, "annotation_accession"), get(a, "annotation_name") or ""
             new = re.sub(r"^LOW QUALITY PROTEIN:\s*", "", name)
             h, b = hits.get((gid, accn)), best.get(gid)
@@ -76,7 +77,7 @@ with open(IN_GTF) as fin, open(OUT_GTF, "w") as fout:
                 add.append(("annotation_species", DBS[h[1]]))
                 add.append(("annotation_label_vs_best", f"{ratio:.3f}"))
                 add.append(("annotation_protein_coverage", h[2]))
-            add.append(("annotation_confidence", conf)); stats[("Mosquito_RefSeq", conf)] += 1
+            add.append(("annotation_confidence", conf)); stats[("Insect_DIAMOND", conf)] += 1
             if new != name:
                 add.append(("annotation_flag", "low_quality_model")); stats["lowquality_stripped"] += 1
             if conf == "low":

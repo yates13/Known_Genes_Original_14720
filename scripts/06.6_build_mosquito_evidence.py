@@ -11,7 +11,7 @@ DBS = ["Cquinq", "Aedes", "Agam", "Dmel"]
 IN = "../results/mosquito_diamond/{}.tsv"
 OUT = "../results/annotation_evidence.Mosquito_DIAMOND.tsv"
 HOMOLOGY_ONLY = "../results/mosquito_diamond/homology_only_no_usable_name.tsv"
-SOURCE, METHOD = "Mosquito_RefSeq", "DIAMOND"
+SOURCE, METHOD = "Insect_DIAMOND", "DIAMOND"   # was "Mosquito_RefSeq" before 2026-11-18
 COLS = ["gene_id", "source", "method", "accession", "name", "evalue", "bitscore",
         "pident", "aln_len", "tier", "transcript_id", "genes_sharing_transcript"]
 VAGUE = re.compile(r"hypothetical|uncharacteri[sz]ed|^predicted protein$|^putative protein$|^protein$|^unnamed", re.I)

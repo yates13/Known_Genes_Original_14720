@@ -48,6 +48,19 @@ results/basefeatures_realgenes.annotated.mosquito_rescue.gtf
 - miniprot: `.../conda_envs/miniprot_env` (binary only, no Python of its own: run 07.8 with the `pandas_env` Python and `miniprot_env/bin` on PATH)
 - Run every script from `scripts/` (they use `../` paths)
 
+### Running on another system
+
+The scripts are written for my Alpine account and contain hardcoded paths. Before running them elsewhere, edit these by hand:
+
+| What | Where | Change to |
+|---|---|---|
+| Conda setup and envs (`/scratch/alpine/c832500103@colostate.edu/miniconda3`, `.../blast_env`, `.../conda_envs/*`) | `source`/`conda activate` lines in 04.2, 06.4, 06.5, 06.5b; `ENV=` in 04.0; `DIAMOND=` and `SAMTOOLS=` in 06.5, 06.5b; `BIN_DIRS` in 07.8; commented `conda activate` hints at the top of the 07.x scripts | your own conda install and environment paths (or just `diamond`, `samtools` if they are on `PATH`) |
+| Upstream project dir (`P=/scratch/alpine/$USER/culex_tarsalis_assembly/Spades_Pipeline_Organized`) | 04.0 | wherever your input GTF and `genome.fa` live |
+| SLURM email (`#SBATCH --mail-user=`) | 04.2, 04.3, 06.4, 06.5, 06.5b | your email, or delete the line together with `--mail-type` |
+| SLURM partition and QoS (`acpu`, `cpu-normal`) | `#SBATCH` headers of the `.sh` scripts | your cluster's partition/QoS names |
+
+To list every hardcoded path: `grep -n "/scratch\|mail-user\|partition\|qos" scripts/*.sh scripts/*.py`. Paths relative to `scripts/` (`../data`, `../results`, `../logs`) do not need changing as long as you keep the directory layout below.
+
 ## Inputs
 
 | Input | Source |
@@ -110,7 +123,6 @@ Known_Genes_Original_14720/
 | 07.4 | `07.4_add_pvalues_to_gtf.py` | Copies a GTF and appends P-value attributes to each gene line (`label_db`, `label_evalue`, `label_pvalue`, `pvalue_<db>`), looked up by gene_id from the 07.2 BED. Non-gene lines unchanged. |
 | 07.5 | `07.5_add_p_e_columns.py` | Reads the v3 GTF and the v3 `with_pvalues` GTF; writes two files with extra tab-separated columns after the attributes: P-value in column 10, and a second file with P-value in column 10 and E-value in column 11. See "v3_confidence outputs". |
 | 07.6 | `07.6_make_gene_table.py` | Gene tables from the 07.7 GTF. Writes `gene_table.v3_confidence_with_Accession.csv` (18 columns: gene_id through protein_coverage, plus name_original and similar_to) and `gene_table.v3_confidence_short.csv` (14 columns, gene_id through evalue) for easy viewing. Run after 07.7 (it reads the 07.7 output). Run in `pandas_env`. |
-| 07.7 | `07.7_add_accession_column.py` | Adds the accession as an extra column to the col10_pvalue GTF. |
 | 07.7 | `07.7_add_accession_column.py` | Adds the accession as column 11 of the col10_pvalue GTF; writes `...v3_confidence.col10_pvalue_col11_accession.gtf`. |
 | 07.8 | `07.8_spotcheck_miniprot.py` | Aligns each spot-check gene's label protein to the gene with miniprot and reports coverage and identity. Usage: `python3 07.8_spotcheck_miniprot.py ../results/spotcheck_ids.txt` (needs the `pandas_env` Python and miniprot on PATH). Writes `spotcheck_coverage.tsv`. |
 | 07.9 | `07.9_make_slim_gtf.py` | Slim strict 9-column GTF. Same 14,720 gene lines and columns 1-8 as the v3 GTF; column 9 keeps only gene_id, ID, Name, annotation_source, annotation_method, annotation_accession, annotation_name, annotation_evalue and annotation_confidence. Edit `KEEP` at the top of the script to change the attributes. Run from `scripts/`. |
@@ -230,8 +242,9 @@ Transposon filter: `transpos|retrotranspos|reverse transcriptase|RNA-directed DN
 | Source | Rule | Result |
 |---|---|---|
 | SwissProt | annotation_evalue < 1e-20 | high (8,283); otherwise medium (2,516). Names never changed. |
-| Mosquito_RefSeq | label bitscore / best bitscore for the gene: >= 0.8 high, 0.5-0.8 medium, < 0.5 low | high 1,263 / medium 403 / low 561 |
+| Insect_DIAMOND | label bitscore / best bitscore for the gene: >= 0.8 high, 0.5-0.8 medium, < 0.5 low | high 1,263 / medium 403 / low 561 |
 
+- The rescue source label is `annotation_source "Insect_DIAMOND"` (renamed from `Mosquito_RefSeq` on 2026-11-18, since Dmel is not a mosquito and the Agam/Dmel sets are UniProt-style `tr|` IDs, not RefSeq). 06.8 and 07.2 accept either label; outputs built before the rename still say `Mosquito_RefSeq` until 06.6 onward is rerun.
 - Rescue names containing DUF or LOC numbers are low regardless of ratio.
 - Low-confidence rescue genes are renamed "uncharacterized protein" (561 genes). The earlier name is kept in `annotation_name_original`, the best hit in `annotation_similar_to`. The `note` attribute is updated to match.
 - "LOW QUALITY PROTEIN:" is removed from names (56 genes) and recorded as `annotation_flag "low_quality_model"`.
@@ -251,7 +264,7 @@ Transposon filter: `transpos|retrotranspos|reverse transcriptase|RNA-directed DN
 - Annotation coverage improved from 10,799/14,720 (73.4%) after SwissProt annotation alone to 13,026/14,720 (88.5%) after mosquito-homology rescue.
 - Mosquito rescue contributed 2,227 additional annotations, reducing the unannotated set by 2,227 genes relative to the SwissProt-only GTF.
 - Incorporation of Agam and Dmel recovered 1,005 additional genes beyond the earlier Cquinq+Aedes-only rescue workflow.
-- Label sources in the final GTF: 10,799 SwissProt annotations and 2,227 Mosquito_RefSeq annotations.
+- Label sources in the final GTF: 10,799 SwissProt annotations and 2,227 Insect_DIAMOND annotations.
 - Output GTF has 14,720 gene lines, matching the input GTF; only gene-line attributes were modified.
 - Rescue GTF (06.7): results/basefeatures_realgenes.annotated.mosquito_rescue.gtf. The final release is its v3_confidence version (06.8; see "Confidence rule" and "v3_confidence outputs").
 
