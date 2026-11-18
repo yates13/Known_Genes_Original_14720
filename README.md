@@ -5,6 +5,12 @@ Culex tarsalis CtarK1 updated GTF. Re-annotates the 14,720 known genes by runnin
 Last updated: 2026-10-22. Status: complete. Final annotation release is the v3_confidence GTF (06.8); 07.x outputs rebuilt on v3; spot-check done. See "Remaining TODOs".
 Repo: github.com/yates13/Known_Genes_Original_14720.
 
+## Scope
+
+This repo covers **cleaning up and re-annotating the existing CtarK1 annotation** (the 14,720 known MAKER/Geneious/VectorBase genes), starting from the raw basefeatures GTF.
+Calling **novel genes** from the rnaSPAdes transcriptome (GMAP alignment, locus QC, Aedes and quinquefasciatus conservation checks) is a separate process in [Culex_Tarsalis_GTF](https://github.com/yates13/Culex_Tarsalis_GTF).
+Step 01.5 here is copied from that repo (`01_novel_locus_pipeline/01.5_Real_Contigs.sh`); it is the only step the cleanup needs from it.
+
 ---
 
 ## Why this pipeline exists
@@ -65,8 +71,9 @@ To list every hardcoded path: `grep -n "/scratch\|mail-user\|partition\|qos" scr
 
 | Input | Source |
 |---|---|
-| `Spades_Pipeline_Organized/results/basefeatures_realgenes.gtf` (14,720 gene lines; identical copy at `data/basefeatures_realgenes.gtf`) | Earlier pipeline (`Spades_Pipeline_Organized`) |
-| `Spades_Pipeline_Organized/data/genome.fa` | CtarK1 genome |
+| `data/basefeatures_raw.gtf` | Raw CtarK1 basefeatures GTF (989,469,413 bytes, dated Sep 1 2026). Input to 01.5. Not the newer `Culex-tarsalis_knwr_BASEFEATURES_CtarK1.1_filtered_WNV_rep_fixed.gtf`, which gives 14,742 genes instead of 14,720 |
+| `data/genome.fa.fai` | Index of the CtarK1 genome; 01.5 takes contig names from it (19,994 contigs) |
+| `data/genome.fa` | CtarK1 genome, needed only to rerun 04.0. **Currently missing** (purged from scratch); restore it and check its contigs against `genome.fa.fai` before rerunning 04.0 |
 | `results/blastx_db/swissprot.*` | Pre-formatted NCBI SwissProt BLAST db (taxdb files alongside), unpacked from `Spades_Pipeline_Organized/data/swissprot.tar.gz`; no `makeblastdb` was run. **Release: built Jul 14, 2026 (487,492 sequences, 185,956,103 residues, BLASTDB version 5)** |
 
 ## Directory layout
@@ -75,7 +82,8 @@ To list every hardcoded path: `grep -n "/scratch\|mail-user\|partition\|qos" scr
 Known_Genes_Original_14720/
   data/
     chunks/known_genes.01.fa ... .20.fa    736 genes each, 14,720 total, 0 duplicate IDs
-    basefeatures_realgenes.gtf             input GTF (14,720 gene lines)
+    basefeatures_raw.gtf                   raw basefeatures GTF (input to 01.5)
+    genome.fa.fai                          CtarK1 genome index (contig names for 01.5)
   logs/                                    SLURM stdout/err (kg_blastx_<jobid>_<task>.out/.err)
   results/
     known_genes.bed, known_genes.fa(.fai)  per-gene coordinates and sequences
@@ -102,6 +110,7 @@ Known_Genes_Original_14720/
 
 | Step | Script | What it does |
 |---|---|---|
+| 01.5 | `01.5_clean_basefeatures.sh` | Renames the `Mt` contig to `Mt_CtarK1_noOVERLAP_RC.1` **before** filtering (otherwise the 6 mitochondrial genes are dropped), keeps rows on contigs in `genome.fa.fai`, and keeps only gene lines with source maker, Geneious or VectorBase. Writes `results/basefeatures_realgenes.gtf` (14,720 genes: 14,713 maker + 6 Geneious + 1 VectorBase). Rerun 2026-11-18: output identical to the original input (BED from it identical to `known_genes.bed`; columns 1-8 and attributes identical to the 05.2 GTF) |
 | 04.0 | `04.0_extract_known_gene_sequences.sh` | GTF gene lines to BED6, check contigs, `bedtools getfasta -s -nameOnly`, strip `(+)/(-)` from headers. Writes `results/known_genes.bed` and `.fa`. Not rerun (BED verified byte-identical to the original) |
 | 04.1 | `04.1_split_genes.sh` | Split `known_genes.fa` into 20 chunks of 736. **Deletes existing chunks; do not rerun while jobs run** |
 | 04.2 | `04.2_blastx_array.sh` | SLURM array 1-20, BLASTX each chunk vs SwissProt |
@@ -155,6 +164,8 @@ SLURM: 4 CPUs, 16 GB, 12 h per task. Tasks took 20-33 min each. Output goes to `
 ```bash
 cd scripts
 mkdir -p ../logs ../results/blastx_chunks
+sbatch 01.5_clean_basefeatures.sh               # raw GTF -> results/basefeatures_realgenes.gtf
+bash 04.0_extract_known_gene_sequences.sh       # needs data/genome.fa
 bash 04.1_split_genes.sh
 sbatch --array=1 04.2_blastx_array.sh         # test one chunk first
 sbatch --array=2-20 04.2_blastx_array.sh      # then the rest
