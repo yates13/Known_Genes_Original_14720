@@ -170,11 +170,7 @@ python3 05.2_build_gtf_with_annotation.py
 
 Rerun only failed tasks: `sbatch --array=7,12 04.2_blastx_array.sh`.
 
-
-
 ### Running the rescue, confidence and output steps (06.5-07.9)
-
-
 
 ```bash
 
@@ -201,8 +197,6 @@ python3 07.5_add_p_e_columns.py && python3 07.7_add_accession_column.py && pytho
 python3 07.9_make_slim_gtf.py
 
 ```
-
-
 
 The four proteomes must exist as `results/mosquito_proteins/<db>.faa` (Cquinq, Aedes, Agam, Dmel) before 06.5 runs; the scripts build the DIAMOND databases from them.
 
@@ -308,14 +302,12 @@ All files are in `results/` and are built from `...mosquito_rescue.v3_confidence
 | `gene_table.v3_confidence_with_Accession.csv` | Full gene table, 14,720 rows, 18 columns (07.6) |
 | `gene_table.v3_confidence_short.csv` | Short gene table, 14 columns ending at evalue (07.6) |
 
-
 Files with 10 or 11 columns are not strict GTF; use the plain v3 or with_pvalues GTF for tools like gffread.
 
 - Unlabeled genes (`annotation_source "none"`) have NA in columns 10 and 11.
 - Columns 10 and 11 are identical for every labeled gene in practice, because all calls already pass about 1e-5.
 - Checked: 14,720 lines in all three files; 10 (or 11) columns on every row; columns 1-9 identical to the source GTF (diff = 0, checked on the v2 build); 1,694 NA rows in column 10, equal to the 1,694 `none` genes; no labeled gene has NA in column 11.
 - Example filter (P-value 1e-10 or better): `awk -F'\t' '$10!="NA" && $10+0 <= 1e-10' <col10 file>`
-
 
 ### Spot-check (07.3, 07.8)
 
